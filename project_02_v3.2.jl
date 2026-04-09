@@ -448,20 +448,40 @@ Here is the animation of the motion of the sliding pistons. The vector arrows th
 # ╔═╡ a7dfcf30-497b-4a13-9fd2-cd482f4db754
 begin
     anim = @animate for k in eachindex(tspan)
+        # Compute velocity-aligned bar directions for each slider
+        v1 = [qdot_hist[1,k], qdot_hist[2,k]]
+        v2 = [qdot_hist[4,k], qdot_hist[5,k]]
+
+        bar_len = 0.02  # half-length of the bar in meters, adjust as needed
+
+        # Normalize velocity vectors (avoid division by zero)
+        n1 = norm(v1) > 1e-10 ? v1 / norm(v1) : [1.0, 0.0]
+        n2 = norm(v2) > 1e-10 ? v2 / norm(v2) : [1.0, 0.0]
+
+        # Bar endpoints: centered on each slider, extending ±bar_len along velocity
+        bar1_x = [x1_hist[k] - bar_len*n1[1], x1_hist[k] + bar_len*n1[1]]
+        bar1_y = [y1_hist[k] - bar_len*n1[2], y1_hist[k] + bar_len*n1[2]]
+
+        bar2_x = [x2_hist[k] - bar_len*n2[1], x2_hist[k] + bar_len*n2[1]]
+        bar2_y = [y2_hist[k] - bar_len*n2[2], y2_hist[k] + bar_len*n2[2]]
+
         plt = plot(track1_x, track1_y,
             xlim=(-0.12, 0.12), ylim=(-0.12, 0.12),
             xlabel="x (m)", ylabel="y (m)", aspect_ratio=:equal,
             label="track y = x",
             title="Dual-slider kinematics, t = $(round(tspan[k], digits=3)) s")
-
         plot!(plt, track2_x, track2_y, label="track y = -x")
         plot!(plt, x1_hist[1:k], y1_hist[1:k], linewidth=2, label="slider 1 path")
         plot!(plt, x2_hist[1:k], y2_hist[1:k], linewidth=2, label="slider 2 path")
         plot!(plt, [xL[k], xR[k]], [yL[k], yR[k]], linewidth=3, label="rigid bar")
         scatter!(plt, [x1_hist[k], x2_hist[k]], [y1_hist[k], y2_hist[k]], markersize=5, label="slider centers")
         scatter!(plt, [x3_hist[k]], [y3_hist[k]], markersize=4, label="bar center")
-		quiver!(plt, [x1_hist[k]], [y1_hist[k]], quiver=([qdot_hist[1,k]], [qdot_hist[2,k]]), label="velocity")
-		quiver!(plt, [x2_hist[k]], [y2_hist[k]],quiver=([qdot_hist[4,k]], [qdot_hist[5,k]]))
+        quiver!(plt, [x1_hist[k]], [y1_hist[k]], quiver=([qdot_hist[1,k]], [qdot_hist[2,k]]), label="velocity")
+        quiver!(plt, [x2_hist[k]], [y2_hist[k]], quiver=([qdot_hist[4,k]], [qdot_hist[5,k]]))
+
+        # Draw velocity-aligned bars at each slider
+        plot!(plt, bar1_x, bar1_y, linewidth=4, color=:orange, label="slider 1 bar")
+        plot!(plt, bar2_x, bar2_y, linewidth=4, color=:purple, label="slider 2 bar")
     end
 end
 
@@ -656,7 +676,7 @@ Symbolics = "~7.13.0"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.4"
+julia_version = "1.12.1"
 manifest_format = "2.0"
 project_hash = "6f34b2dca4f815493ef917c471d5352272bf345b"
 
@@ -1044,7 +1064,7 @@ version = "0.7.16"
 [[deps.Downloads]]
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
 uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
-version = "1.7.0"
+version = "1.6.0"
 
 [[deps.DynamicPolynomials]]
 deps = ["Future", "LinearAlgebra", "MultivariatePolynomials", "MutableArithmetics", "Reexport", "Test"]
@@ -1102,7 +1122,7 @@ uuid = "c87230d0-a227-11e9-1b43-d7ebe4e7570a"
 version = "0.4.5"
 
 [[deps.FFMPEG_jll]]
-deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers", "LAME_jll", "Libdl", "Ogg_jll", "OpenSSL_jll", "Opus_jll", "PCRE2_jll", "Zlib_jll", "libaom_jll", "libass_jll", "libfdk_aac_jll", "libvorbis_jll", "x264_jll", "x265_jll"]
+deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers", "LAME_jll", "Libdl", "Ogg_jll", "OpenSSL_jll", "Opus_jll", "PCRE2_jll", "Zlib_jll", "libaom_jll", "libass_jll", "libfdk_aac_jll", "libva_jll", "libvorbis_jll", "x264_jll", "x265_jll"]
 git-tree-sha1 = "01ba9d15e9eae375dc1eb9589df76b3572acd3f2"
 uuid = "b22a6f82-2f65-5046-a5b2-351ab43fb4e5"
 version = "8.0.1+0"
@@ -1414,7 +1434,7 @@ version = "0.6.4"
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "LibSSH2_jll", "Libdl", "OpenSSL_jll", "Zlib_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "8.15.0+0"
+version = "8.11.1+1"
 
 [[deps.LibGit2]]
 deps = ["LibGit2_jll", "NetworkOptions", "Printf", "SHA"]
@@ -1632,7 +1652,7 @@ version = "0.3.7"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
-version = "2025.11.4"
+version = "2025.5.20"
 
 [[deps.MultivariatePolynomials]]
 deps = ["DataStructures", "LinearAlgebra", "MutableArithmetics"]
@@ -1776,7 +1796,7 @@ version = "1.6.1"
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
-version = "3.5.4+0"
+version = "3.5.1+0"
 
 [[deps.OpenSpecFun_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl"]
@@ -1821,7 +1841,7 @@ version = "0.44.2+0"
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "Random", "SHA", "TOML", "Tar", "UUIDs", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
-version = "1.12.1"
+version = "1.12.0"
 weakdeps = ["REPL"]
 
     [deps.Pkg.extensions]
@@ -2472,6 +2492,12 @@ git-tree-sha1 = "7ed9347888fac59a618302ee38216dd0379c480d"
 uuid = "ea2f1a96-1ddc-540d-b46f-429655e07cfa"
 version = "0.9.12+0"
 
+[[deps.Xorg_libpciaccess_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Zlib_jll"]
+git-tree-sha1 = "4909eb8f1cbf6bd4b1c30dd18b2ead9019ef2fad"
+uuid = "a65dc6b1-eb27-53a1-bb3e-dea574b5389e"
+version = "0.18.1+0"
+
 [[deps.Xorg_libxcb_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libXau_jll", "Xorg_libXdmcp_jll"]
 git-tree-sha1 = "bfcaf7ec088eaba362093393fe11aa141fa15422"
@@ -2584,6 +2610,12 @@ git-tree-sha1 = "9bf7903af251d2050b467f76bdbe57ce541f7f4f"
 uuid = "1183f4f0-6f2a-5f1a-908b-139f9cdfea6f"
 version = "0.2.2+0"
 
+[[deps.libdrm_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libpciaccess_jll"]
+git-tree-sha1 = "63aac0bcb0b582e11bad965cef4a689905456c03"
+uuid = "8e53e030-5e6c-5a89-a30b-be5b7263a166"
+version = "2.4.125+1"
+
 [[deps.libevdev_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "56d643b57b188d30cccc25e331d416d3d358e557"
@@ -2607,6 +2639,12 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Zlib_jll"]
 git-tree-sha1 = "e015f211ebb898c8180887012b938f3851e719ac"
 uuid = "b53b4c65-9356-5827-b1ea-8c7a1a84506f"
 version = "1.6.55+0"
+
+[[deps.libva_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libX11_jll", "Xorg_libXext_jll", "Xorg_libXfixes_jll", "libdrm_jll"]
+git-tree-sha1 = "7dbf96baae3310fe2fa0df0ccbb3c6288d5816c9"
+uuid = "9a156e7d-b971-5f62-b2c9-67348b8fb97c"
+version = "2.23.0+0"
 
 [[deps.libvorbis_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Ogg_jll"]
@@ -2632,9 +2670,9 @@ uuid = "1317d2d5-d96f-522e-a858-c73665f53c3e"
 version = "2022.0.0+1"
 
 [[deps.p7zip_jll]]
-deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
+deps = ["Artifacts", "Libdl"]
 uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
-version = "17.7.0+0"
+version = "17.5.0+2"
 
 [[deps.x264_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
