@@ -10,6 +10,7 @@ begin
     using Symbolics
     using NonlinearSolve
     using Plots
+	import Latexify
 end
 
 # ╔═╡ f17103ea-06bf-11f1-a2b0-79e68ed152eb
@@ -338,6 +339,20 @@ begin
     plot!(tspan, qddot_hist[4, :], label = "x2̈")
 end
 
+# ╔═╡ c697c2d4-5332-42cd-bcdd-4142d3e2ef96
+md"""
+This code below takes the graph and analyzes the maximum points on the graph which represent the maximum acceleration in the system
+"""
+
+# ╔═╡ 69d176d2-e1fa-4360-8541-27ef0d29cd44
+begin
+    max_accel_x1 = maximum(abs.(qddot_hist[1,:]))
+    max_accel_x2 = maximum(abs.(qddot_hist[4,:]))
+
+    println("Max x1 acceleration = ", max_accel_x1, " m/s^2")
+    println("Max x2 acceleration = ", max_accel_x2, " m/s^2")
+end
+
 # ╔═╡ 98fff981-40c9-442f-b14f-d2cd3435cda4
 begin
     plot(tspan, qddot_hist[7, :],
@@ -423,6 +438,13 @@ begin
     plot!(tspan, y3_hist, label = "y3")
 end
 
+# ╔═╡ 8f230a3e-9944-4aa0-812a-8bbfbe5751a9
+md"""
+## Animated graph
+
+Here is the animation of the motion of the sliding pistons. The vector arrows that are seen in the movement of the slider centers represent the velocity of the bar at that given time. We can see when it goes from + to - and the magnitude of this value. It's a good way to see of when during time "t" is the velocity maximum, minimum, or switching sides.
+"""
+
 # ╔═╡ a7dfcf30-497b-4a13-9fd2-cd482f4db754
 begin
     anim = @animate for k in eachindex(tspan)
@@ -438,6 +460,8 @@ begin
         plot!(plt, [xL[k], xR[k]], [yL[k], yR[k]], linewidth=3, label="rigid bar")
         scatter!(plt, [x1_hist[k], x2_hist[k]], [y1_hist[k], y2_hist[k]], markersize=5, label="slider centers")
         scatter!(plt, [x3_hist[k]], [y3_hist[k]], markersize=4, label="bar center")
+		quiver!(plt, [x1_hist[k]], [y1_hist[k]], quiver=([qdot_hist[1,k]], [qdot_hist[2,k]]), label="velocity")
+		quiver!(plt, [x2_hist[k]], [y2_hist[k]],quiver=([qdot_hist[4,k]], [qdot_hist[5,k]]))
     end
 end
 
@@ -457,24 +481,75 @@ From the plots and animation, we can see that:
 
 # ╔═╡ 1fde1360-9c3d-4fc0-8de5-7273d4ecb103
 begin
-    plot(tspan, x1_hist,
-        xlabel = "time (s)",
-        ylabel = "position (m)",
-        title = "Slider x-position vs time",
-        label = "x1")
-
-    plot!(tspan, x2_hist, label = "x2")
+	begin
+	    anim_time = @animate for k in eachindex(tspan)
+	        plot(tspan, x1_hist,
+	            xlabel = "time (s)",
+	            ylabel = "position (m)",
+	            title = "Slider Position vs Time (Animation)",
+	            label = "x1",
+	            linewidth=2)
+	
+	        plot!(tspan, x2_hist, label = "x2", linewidth=2)
+	
+	        # moving points
+	        scatter!([tspan[k]], [x1_hist[k]],
+	            markersize=6,
+	            label="x1 current")
+	
+	        scatter!([tspan[k]], [x2_hist[k]],
+	            markersize=6,
+	            label="x2 current")
+	
+	        # trace up to current time
+	        plot!(tspan[1:k], x1_hist[1:k],
+	            linewidth=3,
+	            label="x1 path")
+	
+	        plot!(tspan[1:k], x2_hist[1:k],
+	            linewidth=3,
+	            label="x2 path")
+	    end
+	end
+	
+	gif(anim_time, "slider_time_history.gif", fps=20)
 end
 
 # ╔═╡ ced1189c-bc82-45fb-babe-c15dbc179eb1
 begin
-    plot(tspan, x3_hist,
-        xlabel = "time (s)",
-        ylabel = "bar center position (m)",
-        title = "Bar center position vs time",
-        label = "x3")
-
-    plot!(tspan, y3_hist, label = "y3")
+	plt = plot()
+	anim_bar = @animate for k in eachindex(tspan)
+	    # base plot of full history
+	    plot(tspan, x3_hist,
+	        xlabel = "time (s)",
+	        ylabel = "bar center position (m)",
+	        title = "Bar Center Position vs Time (Animation)",
+	        label = "x3",
+	        linewidth=2)
+	
+	    plot!(tspan, y3_hist, label = "y3", linewidth=2)
+	
+	    # moving points
+	    scatter!([tspan[k]], [x3_hist[k]],
+	        markersize=6,
+	        label="x3 current")
+	
+	    scatter!([tspan[k]], [y3_hist[k]],
+	        markersize=6,
+	        label="y3 current")
+	
+	    # trace of path up to current time
+	    plot!(tspan[1:k], x3_hist[1:k],
+	        linewidth=3,
+	        label="x3 path")
+	
+	    plot!(tspan[1:k], y3_hist[1:k],
+	        linewidth=3,
+	        label="y3 path")
+	end
+	
+	# save animation as GIF
+	gif(anim_bar, "bar_center_time_history.gif", fps=20)
 end
 
 # ╔═╡ c4348717-3cc7-41fb-a57d-491336ff42da
@@ -519,15 +594,59 @@ Key observations:
 - the acceleration plots help confirm that the mechanism motion is not constant-speed translation, even though the bar has constant angular speed
 """
 
+# ╔═╡ 306dbd49-eaef-4dca-9b51-f74017b782fa
+md"""
+### Phase Plot Interpretation (Slider 1)
+
+The phase plot shows the relationship between the slider position `x₁` and its velocity `x₁̇`.
+
+Key observations:
+
+- The trajectory forms a **closed loop**, meaning there is periodic motion from the rigid bar.
+- The motion is **nonlinear**, as seen by the non-elliptical shape of the curve.
+- The slider velocity is **not constant**, even though the bar rotates at constant angular speed.
+- Regions where the curve is steep correspond to **high acceleration**, where velocity changes rapidly.
+
+This visualization helps show what velocity is at a given postion, and the pattern that comes from it.
+"""
+
+# ╔═╡ c6cfd244-3e63-49aa-a415-3cbb9b129805
+begin
+	begin
+	    anim_phase = @animate for k in eachindex(tspan)
+	        plot(x1_hist, qdot_hist[1,:],
+	            xlabel="x1 (m)",
+	            ylabel="x1 dot (m/s)",
+	            title="Phase Plot Animation (Slider 1)",
+	            label="trajectory",
+	            linewidth=2)
+	
+	        # moving point
+	        scatter!([x1_hist[k]], [qdot_hist[1,k]],
+	            markersize=6,
+	            label="current state")
+	
+	        # trace up to current time
+	        plot!(x1_hist[1:k], qdot_hist[1,1:k],
+	            linewidth=3,
+	            label="path so far")
+	    end
+	end
+	
+	gif(anim_phase, "phase_plot_slider1.gif", fps=20)
+end
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 NonlinearSolve = "8913a72c-1f9b-4ce2-8d82-65094dcecaec"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
 [compat]
+Latexify = "~0.16.10"
 NonlinearSolve = "~4.16.0"
 Plots = "~1.41.6"
 Symbolics = "~7.13.0"
@@ -537,9 +656,9 @@ Symbolics = "~7.13.0"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.5"
+julia_version = "1.12.4"
 manifest_format = "2.0"
-project_hash = "303a26205558037a2aecd9392e7d2244b36db266"
+project_hash = "6f34b2dca4f815493ef917c471d5352272bf345b"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "f7304359109c768cf32dc5fa2d371565bb63b68a"
@@ -589,9 +708,9 @@ version = "0.1.43"
 
 [[deps.Adapt]]
 deps = ["LinearAlgebra", "Requires"]
-git-tree-sha1 = "35ea197a51ce46fcd01c4a44befce0578a1aaeca"
+git-tree-sha1 = "7e35fca2bdfba44d797c53dfe63a51fabf39bfc0"
 uuid = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
-version = "4.5.0"
+version = "4.4.0"
 weakdeps = ["SparseArrays", "StaticArrays"]
 
     [deps.Adapt.extensions]
@@ -610,12 +729,11 @@ version = "1.1.2"
 
 [[deps.ArrayInterface]]
 deps = ["Adapt", "LinearAlgebra"]
-git-tree-sha1 = "78b3a7a536b4b0a747a0f296ea77091ca0a9f9a3"
+git-tree-sha1 = "d81ae5489e13bc03567d4fbbb06c546a5e53c857"
 uuid = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
-version = "7.23.0"
+version = "7.22.0"
 
     [deps.ArrayInterface.extensions]
-    ArrayInterfaceAMDGPUExt = "AMDGPU"
     ArrayInterfaceBandedMatricesExt = "BandedMatrices"
     ArrayInterfaceBlockBandedMatricesExt = "BlockBandedMatrices"
     ArrayInterfaceCUDAExt = "CUDA"
@@ -630,7 +748,6 @@ version = "7.23.0"
     ArrayInterfaceTrackerExt = "Tracker"
 
     [deps.ArrayInterface.weakdeps]
-    AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
     BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
     BlockBandedMatrices = "ffab5731-97b5-5995-9138-79e8c1846df0"
     CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
@@ -664,9 +781,9 @@ version = "0.1.9"
 
 [[deps.BracketingNonlinearSolve]]
 deps = ["CommonSolve", "ConcreteStructs", "NonlinearSolveBase", "PrecompileTools", "Reexport", "SciMLBase"]
-git-tree-sha1 = "4999dff8efd76814f6662519b985aeda975a1924"
+git-tree-sha1 = "fad1448f07155b299bfb925ebf22f5d553bdfb6e"
 uuid = "70df07ce-3d50-431d-a3e7-ca6ddb60ac1e"
-version = "1.11.0"
+version = "1.10.0"
 weakdeps = ["ChainRulesCore", "ForwardDiff"]
 
     [deps.BracketingNonlinearSolve.extensions]
@@ -1086,9 +1203,9 @@ version = "0.2.0"
 
 [[deps.GR]]
 deps = ["Artifacts", "Base64", "DelimitedFiles", "Downloads", "GR_jll", "HTTP", "JSON", "Libdl", "LinearAlgebra", "Preferences", "Printf", "Qt6Wayland_jll", "Random", "Serialization", "Sockets", "TOML", "Tar", "Test", "p7zip_jll"]
-git-tree-sha1 = "44716a1a667cb867ee0e9ec8edc31c3e4aa5afdc"
+git-tree-sha1 = "ee0585b62671ce88e48d3409733230b401c9775c"
 uuid = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
-version = "0.73.24"
+version = "0.73.22"
 
     [deps.GR.extensions]
     IJuliaExt = "IJulia"
@@ -1098,9 +1215,9 @@ version = "0.73.24"
 
 [[deps.GR_jll]]
 deps = ["Artifacts", "Bzip2_jll", "Cairo_jll", "FFMPEG_jll", "Fontconfig_jll", "FreeType2_jll", "GLFW_jll", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "Pixman_jll", "Qt6Base_jll", "Zlib_jll", "libpng_jll"]
-git-tree-sha1 = "be8a1b8065959e24fdc1b51402f39f3b6f0f6653"
+git-tree-sha1 = "7dd7173f7129a1b6f84e0f03e0890cd1189b0659"
 uuid = "d2c73de3-f751-5644-a686-071e5b155ba9"
-version = "0.73.24+0"
+version = "0.73.22+0"
 
 [[deps.GettextRuntime_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Libiconv_jll"]
@@ -1373,13 +1490,12 @@ version = "1.12.0"
 
 [[deps.LinearSolve]]
 deps = ["ArrayInterface", "ChainRulesCore", "ConcreteStructs", "DocStringExtensions", "EnumX", "GPUArraysCore", "InteractiveUtils", "Krylov", "Libdl", "LinearAlgebra", "MKL_jll", "Markdown", "OpenBLAS_jll", "PrecompileTools", "Preferences", "RecursiveArrayTools", "Reexport", "SciMLBase", "SciMLLogging", "SciMLOperators", "Setfield", "StaticArraysCore"]
-git-tree-sha1 = "ba64436736405d666e0d22d54ee0e1b04e2e2b02"
+git-tree-sha1 = "f9e19cacc616da676db6fbb74827d3979ad6c0ae"
 uuid = "7ed4a6bd-45f5-4d41-b270-4a48e9bafcae"
-version = "3.64.0"
+version = "3.59.1"
 
     [deps.LinearSolve.extensions]
     LinearSolveAMDGPUExt = "AMDGPU"
-    LinearSolveAlgebraicMultigridExt = "AlgebraicMultigrid"
     LinearSolveBLISExt = ["blis_jll", "LAPACK_jll"]
     LinearSolveBandedMatricesExt = "BandedMatrices"
     LinearSolveBlockDiagonalsExt = "BlockDiagonals"
@@ -1391,7 +1507,6 @@ version = "3.64.0"
     LinearSolveFastAlmostBandedMatricesExt = "FastAlmostBandedMatrices"
     LinearSolveFastLapackInterfaceExt = "FastLapackInterface"
     LinearSolveForwardDiffExt = "ForwardDiff"
-    LinearSolveGinkgoExt = ["Ginkgo", "SparseArrays"]
     LinearSolveHYPREExt = "HYPRE"
     LinearSolveIterativeSolversExt = "IterativeSolvers"
     LinearSolveKernelAbstractionsExt = "KernelAbstractions"
@@ -1399,7 +1514,6 @@ version = "3.64.0"
     LinearSolveMetalExt = "Metal"
     LinearSolveMooncakeExt = "Mooncake"
     LinearSolvePETScExt = ["PETSc", "SparseArrays"]
-    LinearSolveParUExt = ["ParU_jll", "SparseArrays"]
     LinearSolvePardisoExt = ["Pardiso", "SparseArrays"]
     LinearSolveRecursiveFactorizationExt = "RecursiveFactorization"
     LinearSolveSparseArraysExt = "SparseArrays"
@@ -1407,7 +1521,6 @@ version = "3.64.0"
 
     [deps.LinearSolve.weakdeps]
     AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
-    AlgebraicMultigrid = "2169fc97-5a83-5252-b627-83903c6c433c"
     BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
     BlockDiagonals = "0a1fb500-61f7-11e9-3c65-f5ef3456f9f0"
     CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
@@ -1418,7 +1531,6 @@ version = "3.64.0"
     FastAlmostBandedMatrices = "9d29842c-ecb8-4973-b1e9-a27b1157504e"
     FastLapackInterface = "29a986be-02c6-4525-aec4-84b980013641"
     ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
-    Ginkgo = "4c8bd3c9-ead9-4b5e-a625-08f1338ba0ec"
     HYPRE = "b5ffcf37-a2bd-41ab-a3da-4bd9bc8ad771"
     IterativeSolvers = "42fd0dbc-a981-5370-80f2-aaf504508153"
     KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
@@ -1427,7 +1539,6 @@ version = "3.64.0"
     Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
     Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
     PETSc = "ace2c81b-2b5f-4b1e-a30d-d662738edfe0"
-    ParU_jll = "9e0b026c-e8ce-559c-a2c4-6a3d5c955bc9"
     Pardiso = "46dd5b70-b6fb-5a00-ae2d-e8fea33afaf2"
     RecursiveFactorization = "f2c3362d-daeb-58d1-803e-2bc74f2840b4"
     SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
@@ -1584,9 +1695,9 @@ version = "4.16.0"
 
 [[deps.NonlinearSolveBase]]
 deps = ["ADTypes", "Adapt", "ArrayInterface", "CommonSolve", "Compat", "ConcreteStructs", "DifferentiationInterface", "EnzymeCore", "FastClosures", "LinearAlgebra", "LogExpFunctions", "Markdown", "MaybeInplace", "PreallocationTools", "Preferences", "Printf", "RecursiveArrayTools", "SciMLBase", "SciMLJacobianOperators", "SciMLLogging", "SciMLOperators", "SciMLStructures", "Setfield", "StaticArraysCore", "SymbolicIndexingInterface", "TimerOutputs"]
-git-tree-sha1 = "4f595a0977d6e048fa1e3c382b088b950f8c7934"
+git-tree-sha1 = "7208e90967acd77aa6b4d46ac65cc5ac1643794c"
 uuid = "be0214bd-f91f-a760-ac4e-3421ce2b2da0"
-version = "2.15.0"
+version = "2.14.0"
 
     [deps.NonlinearSolveBase.extensions]
     NonlinearSolveBaseBandedMatricesExt = "BandedMatrices"
@@ -1794,33 +1905,27 @@ version = "1.4.0"
 
 [[deps.Qt6Base_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Vulkan_Loader_jll", "Xorg_libSM_jll", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_cursor_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "libinput_jll", "xkbcommon_jll"]
-git-tree-sha1 = "d7a4bff94f42208ce3cf6bc8e4e7d1d663e7ee8b"
+git-tree-sha1 = "34f7e5d2861083ec7596af8b8c092531facf2192"
 uuid = "c0090381-4147-56d7-9ebc-da0b1113ec56"
-version = "6.10.2+1"
+version = "6.8.2+2"
 
 [[deps.Qt6Declarative_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Qt6Base_jll", "Qt6ShaderTools_jll", "Qt6Svg_jll"]
-git-tree-sha1 = "d5b7dd0e226774cbd87e2790e34def09245c7eab"
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Qt6Base_jll", "Qt6ShaderTools_jll"]
+git-tree-sha1 = "da7adf145cce0d44e892626e647f9dcbe9cb3e10"
 uuid = "629bc702-f1f5-5709-abd5-49b8460ea067"
-version = "6.10.2+1"
+version = "6.8.2+1"
 
 [[deps.Qt6ShaderTools_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Qt6Base_jll"]
-git-tree-sha1 = "4d85eedf69d875982c46643f6b4f66919d7e157b"
+git-tree-sha1 = "9eca9fc3fe515d619ce004c83c31ffd3f85c7ccf"
 uuid = "ce943373-25bb-56aa-8eca-768745ed7b5a"
-version = "6.10.2+1"
-
-[[deps.Qt6Svg_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Qt6Base_jll"]
-git-tree-sha1 = "81587ff5ff25a4e1115ce191e36285ede0334c9d"
-uuid = "6de9746b-f93d-5813-b365-ba18ad4a9cf3"
-version = "6.10.2+0"
+version = "6.8.2+1"
 
 [[deps.Qt6Wayland_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Qt6Base_jll", "Qt6Declarative_jll"]
-git-tree-sha1 = "672c938b4b4e3e0169a07a5f227029d4905456f2"
+git-tree-sha1 = "8f528b0851b5b7025032818eb5abbeb8a736f853"
 uuid = "e99dba38-086e-5de3-a5b1-6e4c66e897c3"
-version = "6.10.2+1"
+version = "6.8.2+2"
 
 [[deps.REPL]]
 deps = ["InteractiveUtils", "JuliaSyntaxHighlighting", "Markdown", "Sockets", "StyledStrings", "Unicode"]
@@ -1912,9 +2017,9 @@ version = "0.7.0"
 
 [[deps.SciMLBase]]
 deps = ["ADTypes", "Accessors", "Adapt", "ArrayInterface", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "EnumX", "FunctionWrappersWrappers", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "Moshi", "PreallocationTools", "PrecompileTools", "Preferences", "Printf", "RecipesBase", "RecursiveArrayTools", "Reexport", "RuntimeGeneratedFunctions", "SciMLLogging", "SciMLOperators", "SciMLPublic", "SciMLStructures", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface"]
-git-tree-sha1 = "4675d321bfebe190d22dc4d9de6af7e318d5174a"
+git-tree-sha1 = "d370a38786ebbb9cd5ec386b76d57e50e88c823c"
 uuid = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
-version = "2.148.0"
+version = "2.144.2"
 
     [deps.SciMLBase.extensions]
     SciMLBaseChainRulesCoreExt = "ChainRulesCore"
@@ -2150,9 +2255,9 @@ version = "1.1.0"
 
 [[deps.SymbolicUtils]]
 deps = ["AbstractTrees", "ArrayInterface", "Combinatorics", "ConstructionBase", "DataStructures", "DocStringExtensions", "DynamicPolynomials", "EnumX", "ExproniconLite", "LinearAlgebra", "MacroTools", "Moshi", "MultivariatePolynomials", "MutableArithmetics", "NaNMath", "PrecompileTools", "ReadOnlyArrays", "Setfield", "SparseArrays", "SpecialFunctions", "StaticArraysCore", "SymbolicIndexingInterface", "TaskLocalValues", "TermInterface", "WeakCacheSets"]
-git-tree-sha1 = "df93b5c3b6182a22ee87f8c0d0e404fe3d8ecb9c"
+git-tree-sha1 = "d1c1a41cd8b7ed85559a87ac09b9b0925818aaaa"
 uuid = "d1185830-fcd6-423d-90d6-eec64667417b"
-version = "4.19.0"
+version = "4.18.5"
 
     [deps.SymbolicUtils.extensions]
     SymbolicUtilsChainRulesCoreExt = "ChainRulesCore"
@@ -2552,9 +2657,9 @@ version = "1.13.0+0"
 
 # ╔═╡ Cell order:
 # ╟─f17103ea-06bf-11f1-a2b0-79e68ed152eb
-# ╠═0d9be664-d7c5-4084-add2-25e5418742d6
+# ╟─0d9be664-d7c5-4084-add2-25e5418742d6
 # ╠═69287715-a416-403a-b5ea-7071727dff37
-# ╠═5e32e0c8-298a-439e-85ca-6e3367ddf28c
+# ╟─5e32e0c8-298a-439e-85ca-6e3367ddf28c
 # ╠═e0a2b2f8-c836-4492-9158-7357ea116dbd
 # ╠═ea738297-5c3a-432f-8f2d-12b0cd71c97f
 # ╠═2612aea9-9337-44b8-8ab7-3335a7fad049
@@ -2573,9 +2678,11 @@ version = "1.13.0+0"
 # ╠═7f7d1693-c9c7-4f3d-a3b1-caeeefe87fc5
 # ╠═412489d3-b753-4643-9937-213019d2f136
 # ╠═3629d438-deb7-413d-9201-eb248ef5c4df
-# ╠═5b7a6470-55e3-42d2-ba5e-c85cd2af3004
+# ╟─5b7a6470-55e3-42d2-ba5e-c85cd2af3004
 # ╠═9ff6c4c3-1ef8-4ae4-a9c2-4054c484eb2e
 # ╠═8380f12d-05c5-4352-8ff8-b35135fe9f0c
+# ╠═c697c2d4-5332-42cd-bcdd-4142d3e2ef96
+# ╠═69d176d2-e1fa-4360-8541-27ef0d29cd44
 # ╠═98fff981-40c9-442f-b14f-d2cd3435cda4
 # ╠═0529841e-9508-4e75-944a-c6079c7504b3
 # ╠═23ff1519-bb8c-4444-9745-1d9f797290c0
@@ -2583,13 +2690,16 @@ version = "1.13.0+0"
 # ╠═59aa35c9-e883-4445-80e7-6287227b0453
 # ╠═f9ea51a6-0d96-4af6-82ec-60a8344fbf9b
 # ╠═65627128-0267-442c-892b-331a250ab131
+# ╠═8f230a3e-9944-4aa0-812a-8bbfbe5751a9
 # ╠═a7dfcf30-497b-4a13-9fd2-cd482f4db754
 # ╠═64752b41-3b24-4d4b-a1ec-e2a6259511e4
 # ╠═37b9a94c-38b9-4428-b0df-f72a0c2bd6e7
 # ╠═1fde1360-9c3d-4fc0-8de5-7273d4ecb103
 # ╠═ced1189c-bc82-45fb-babe-c15dbc179eb1
 # ╠═c4348717-3cc7-41fb-a57d-491336ff42da
-# ╠═ae8136aa-04de-4e87-8185-926dbbf2cecd
-# ╠═eacdc176-1624-42c8-9940-1ff980344045
+# ╟─ae8136aa-04de-4e87-8185-926dbbf2cecd
+# ╟─eacdc176-1624-42c8-9940-1ff980344045
+# ╠═306dbd49-eaef-4dca-9b51-f74017b782fa
+# ╠═c6cfd244-3e63-49aa-a415-3cbb9b129805
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
